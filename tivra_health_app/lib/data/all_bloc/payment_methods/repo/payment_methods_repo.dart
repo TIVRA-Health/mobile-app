@@ -1,0 +1,42 @@
+import 'dart:convert';
+import 'package:tivra_health/data/all_bloc/payment_methods/repo/payment_methods_response.dart';
+import 'package:tivra_health/data/local/shared_prefs/shared_prefs.dart';
+import 'package:tivra_health/data/remote/web_common_response.dart';
+import 'package:tivra_health/data/remote/web_constants.dart';
+import 'package:tivra_health/data/remote/web_response_failed.dart';
+import 'package:tivra_health/data/remote/web_service.dart';
+
+
+class PaymentMethodsRepository {
+  final Webservice webservice;
+  final SharedPrefs sharedPrefs;
+  dynamic returnResponse;
+
+  PaymentMethodsRepository({required this.webservice, required this.sharedPrefs});
+
+  Future<dynamic> fetchPaymentMethods() async {
+    final response = await webservice
+        .getWithAuthWithoutRequest(WebConstants.actionPaymentMethods);
+
+    try {
+      WebCommonResponse mWebCommonResponse =
+          WebCommonResponse.fromJson(response);
+      if (mWebCommonResponse.statusCode.toString() == "200") {
+        String sValue = "{\"data\":${mWebCommonResponse.data}}";
+        await sharedPrefs.savePaymentMethods(sValue);
+        PaymentMethodsResponse paymentResponse = PaymentMethodsResponse.fromJson(json.decode(sValue));
+        returnResponse = paymentResponse;
+      }else{
+        WebResponseFailed mWebResponseFailed = WebResponseFailed();
+        mWebResponseFailed.setMessage("Sorry, Home details does not exist.");
+        returnResponse = mWebResponseFailed;
+      }
+    } catch (e) {
+      WebResponseFailed mWebResponseFailed = WebResponseFailed();
+      mWebResponseFailed.setMessage("Sorry, Home details does not exist.");
+      returnResponse = mWebResponseFailed;
+    }
+
+    return returnResponse;
+  }
+}
